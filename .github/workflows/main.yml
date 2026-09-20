@@ -290,6 +290,13 @@ jobs:
         run: |
           cp out/dist/Image Image.${{ matrix.variant }}
 
+      - name: "📤 Upload kernel"
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-${{ matrix.variant }}
+          path: ${{ env.WORK_DIR }}/Image.${{ matrix.variant }}
+          retention-days: 3
+          
       - name: "🧩 Build RTL8188EU module"
         if: ${{ !cancelled() }}
         continue-on-error: true
