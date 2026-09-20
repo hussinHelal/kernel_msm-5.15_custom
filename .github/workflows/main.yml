@@ -12,12 +12,12 @@ on:
         description: "Kernel source URL"
         required: true
         type: string
-        default: "https://github.com/topnotchfreaks/kernel_msm-5.15"
+        default: "https://github.com/hussinHelal/kernel_msm-5.15_custom"
       kernelBranch:
         description: "Kernel branch"
         required: false
         type: string
-        default: "codelinaro"
+        default: "my-changes"
       kernelDevice:
         description: "Device (used for defconfig)"
         required: true
