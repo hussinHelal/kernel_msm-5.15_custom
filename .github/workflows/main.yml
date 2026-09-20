@@ -125,35 +125,6 @@ jobs:
           CONFIG_KALLSYMS=y
           CONFIG_TMPFS_XATTR=y
           CONFIG_TMPFS_POSIX_ACL=y
-          CONFIG_OVERLAY_FS=y
-          CONFIG_MODULE_FORCE_LOAD=y
-          CONFIG_MODULE_FORCE_UNLOAD=y
-          CONFIG_BT=y
-          CONFIG_BT_RFCOMM=y
-          CONFIG_BT_RFCOMM_TTY=y
-          CONFIG_BT_BNEP=y
-          CONFIG_BT_HIDP=y
-          CONFIG_BT_HCIBTUSB=y
-          CONFIG_BT_HCIBTUSB_MTK=y
-          CONFIG_BT_HCIVHCI=y
-          CONFIG_USB_MON=y
-          CONFIG_USBIP_CORE=y
-          CONFIG_USBIP_VHCI_HCD=y
-          CONFIG_USBIP_HOST=y
-          CONFIG_USBIP_VUDC=y
-          CONFIG_RFKILL=y
-          CONFIG_CFG80211=m
-          CONFIG_MAC80211=m
-          CONFIG_CFG80211_WEXT=y
-          CONFIG_ATH9K_HTC=m
-          CONFIG_MT7601U=m
-          CONFIG_MT76x0U=m
-          CONFIG_RT2X00=m
-          CONFIG_RT2800USB=m
-          CONFIG_RT2800USB_RT53XX=y
-          CONFIG_RT2800USB_RT55XX=y
-          CONFIG_RT2800USB_UNKNOWN=y
-          CONFIG_RTL8188EU=m
           EOF
 
       - name: "🔧 Setup ReSukiSU"
