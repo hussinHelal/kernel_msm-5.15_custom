@@ -111,7 +111,7 @@ jobs:
           -e '/^MODULES_LIST=/d' \
          ${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki.aarch64
 
-        - name: "⚙️ Configure kernel"
+      - name: "⚙️ Configure kernel"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         run: |
           CONFIG_FILE="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
