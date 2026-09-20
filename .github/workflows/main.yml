@@ -111,22 +111,49 @@ jobs:
           -e '/^MODULES_LIST=/d' \
          ${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki.aarch64
 
-      - name: "⚙️ Configure kernel"
+        - name: "⚙️ Configure kernel"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         run: |
-          # Define the config file path
           CONFIG_FILE="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
-          
+
           # Set localversion
           if [ -n "${{ github.event.inputs.localVersion }}" ]; then
             echo "CONFIG_LOCALVERSION=\"${{ github.event.inputs.localVersion }}\"" >> "$CONFIG_FILE"
           fi
-          
-          CONFIG_FILE="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
+
           cat >> "$CONFIG_FILE" << 'EOF'
           CONFIG_KALLSYMS=y
           CONFIG_TMPFS_XATTR=y
           CONFIG_TMPFS_POSIX_ACL=y
+          CONFIG_OVERLAY_FS=y
+          CONFIG_MODULE_FORCE_LOAD=y
+          CONFIG_MODULE_FORCE_UNLOAD=y
+          CONFIG_BT=y
+          CONFIG_BT_RFCOMM=y
+          CONFIG_BT_RFCOMM_TTY=y
+          CONFIG_BT_BNEP=y
+          CONFIG_BT_HIDP=y
+          CONFIG_BT_HCIBTUSB=y
+          CONFIG_BT_HCIBTUSB_MTK=y
+          CONFIG_BT_HCIVHCI=y
+          CONFIG_USB_MON=y
+          CONFIG_USBIP_CORE=y
+          CONFIG_USBIP_VHCI_HCD=y
+          CONFIG_USBIP_HOST=y
+          CONFIG_USBIP_VUDC=y
+          CONFIG_RFKILL=y
+          CONFIG_CFG80211=m
+          CONFIG_MAC80211=m
+          CONFIG_CFG80211_WEXT=y
+          CONFIG_ATH9K_HTC=m
+          CONFIG_MT7601U=m
+          CONFIG_MT76x0U=m
+          CONFIG_RT2X00=m
+          CONFIG_RT2800USB=m
+          CONFIG_RT2800USB_RT53XX=y
+          CONFIG_RT2800USB_RT55XX=y
+          CONFIG_RT2800USB_UNKNOWN=y
+          CONFIG_RTL8188EU=m
           EOF
 
       - name: "🔧 Setup ReSukiSU"
@@ -263,12 +290,37 @@ jobs:
         run: |
           cp out/dist/Image Image.${{ matrix.variant }}
 
-      - name: "📤 Upload kernel"
+      - name: "📦 Collect modules, headers and config"
+        if: ${{ !cancelled() }}
+        working-directory: ${{ env.WORK_DIR }}
+        run: |
+          mkdir -p extras
+          DIST=$(ls -d out/dist out/*/dist 2>/dev/null | head -1 || true)
+          echo "dist dir: ${DIST:-<none>}"
+          if [ -n "$DIST" ]; then
+            cp "$DIST"/*.ko extras/ 2>/dev/null || true
+            for f in kernel-headers.tar.gz kernel-uapi-headers.tar.gz Module.symvers vmlinux.symvers System.map modules.builtin; do
+              if [ -f "$DIST/$f" ]; then cp "$DIST/$f" extras/; fi
+            done
+          fi
+          # exist even if the build fails part-way
+          CFG=$(find out -maxdepth 5 -name .config | head -1 || true)
+          if [ -n "$CFG" ]; then
+            cp "$CFG" extras/config-used
+            if [ -f "$(dirname "$CFG")/modules.order" ]; then
+              cp "$(dirname "$CFG")/modules.order" extras/modules.order
+            fi
+          fi
+          ls -la extras
+
+      - name: "📤 Upload modules and headers"
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: kernel-${{ matrix.variant }}
-          path: ${{ env.WORK_DIR }}/Image.${{ matrix.variant }}
-          retention-days: 3
+          name: modules-headers-${{ matrix.variant }}
+          path: ${{ env.WORK_DIR }}/extras/
+          retention-days: 7
+          if-no-files-found: warn
 
   Package-Kernels:
     name: "📦 Package kernels"
@@ -303,17 +355,4 @@ jobs:
           path: ${{ env.ZIP_PATH }}
           retention-days: 7
 
-      - name: "📱 Send to Telegram"
-        if: always()
-        run: |
-          if [[ -f "${{ env.ZIP_PATH }}" ]]; then
-            curl -s -F document=@"${{ env.ZIP_PATH }}" \
-                 -F caption="✅ Kernel Build Complete (WildKSU) - $(date '+%Y-%m-%d %H:%M:%S')" \
-                 -F chat_id=${{ secrets.TELEGRAM_USER_ID }} \
-                 "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument"
-          else
-            curl -s -X POST \
-                 -d chat_id=${{ secrets.TELEGRAM_USER_ID }} \
-                 -d text="❌ Kernel build failed" \
-                 "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage"
-          fi
+      
