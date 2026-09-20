@@ -60,7 +60,7 @@ jobs:
           mkdir -p $kernelDir
           echo "BUILD_TIME=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
           sudo apt-get update -qq
-          sudo apt-get install -y repo rsync aria2
+          sudo apt-get install -y repo rsync aria2 curl wget jq patch zip build-essential bc bison flex libssl-dev libelf-dev python3 cpio pahole dwarves
 
       - name: 📐 Setup SWAP 15GB
         uses: pierotofy/set-swap-space@master
