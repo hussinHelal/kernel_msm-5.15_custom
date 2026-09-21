@@ -17,7 +17,7 @@ on:
         description: "Kernel branch"
         required: false
         type: string
-        default: "my-changes"
+        default: "google"
       kernelDevice:
         description: "Device (used for defconfig)"
         required: true
