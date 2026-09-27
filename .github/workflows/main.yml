@@ -125,6 +125,34 @@ jobs:
           CONFIG_KALLSYMS=y
           CONFIG_TMPFS_XATTR=y
           CONFIG_TMPFS_POSIX_ACL=y
+          CONFIG_OVERLAY_FS=y
+          CONFIG_MODULE_FORCE_LOAD=y
+          CONFIG_MODULE_FORCE_UNLOAD=y
+          CONFIG_BT=y
+          CONFIG_BT_RFCOMM=y
+          CONFIG_BT_RFCOMM_TTY=y
+          CONFIG_BT_BNEP=y
+          CONFIG_BT_HIDP=y
+          CONFIG_BT_HCIBTUSB=y
+          CONFIG_BT_HCIBTUSB_MTK=y
+          CONFIG_BT_HCIVHCI=y
+          CONFIG_USB_MON=y
+          CONFIG_USBIP_CORE=y
+          CONFIG_USBIP_VHCI_HCD=y
+          CONFIG_USBIP_HOST=y
+          CONFIG_USBIP_VUDC=y
+          CONFIG_RFKILL=y
+          CONFIG_CFG80211=m
+          CONFIG_MAC80211=m
+          CONFIG_CFG80211_WEXT=y
+          CONFIG_ATH9K_HTC=m
+          CONFIG_MT7601U=m
+          CONFIG_MT76x0U=m
+          CONFIG_RT2X00=m
+          CONFIG_RT2800USB=m
+          CONFIG_RT2800USB_RT53XX=y
+          CONFIG_RT2800USB_RT55XX=y
+          CONFIG_RT2800USB_UNKNOWN=y
           EOF
 
       - name: "🔧 Setup ReSukiSU"
@@ -267,6 +295,41 @@ jobs:
           name: kernel-${{ matrix.variant }}
           path: ${{ env.WORK_DIR }}/Image.${{ matrix.variant }}
           retention-days: 3
+
+      - name: "🧩 Build RTL8188EU module"
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        working-directory: ${{ env.WORK_DIR }}
+        run: |
+          mkdir -p extras
+          SRC="${{ env.kernelDir }}/${{ env.kernelName }}"
+          DRV="drivers/net/wireless/rtl8188eus_android15"
+
+          if [ ! -d "$SRC/$DRV" ]; then
+            echo "::notice::$DRV is not in this branch - skipping"
+            exit 0
+          fi
+          CFG=$(find out -maxdepth 5 -name .config | head -1)
+          if [ -z "$CFG" ]; then
+            echo "::error::no kernel .config under out/ - the kernel build did not get that far"
+            exit 1
+          fi
+          OUTK=$(cd "$(dirname "$CFG")" && pwd)
+          CLANG_VER=$(grep -m1 '^CLANG_VERSION=' "$SRC/build.config.constants" | cut -d= -f2)
+          export PATH="$WORK_DIR/prebuilts/clang/host/linux-x86/clang-$CLANG_VER/bin:$PATH"
+          echo "out dir: $OUTK | clang: $CLANG_VER"
+
+          cd "$SRC"
+          set +e
+          make LLVM=1 ARCH=arm64 O="$OUTK" M="$DRV" CONFIG_RTL8188EU=m \
+               KCFLAGS="-Wno-implicit-function-declaration" \
+               modules -j"$(nproc)" 2>&1 | tee "$WORK_DIR/extras/8188eu-build.log"
+          RC=${PIPESTATUS[0]}
+          set -e
+
+          KO=$(find "$DRV" "$OUTK/$DRV" -name '*.ko' 2>/dev/null | head -1)
+          if [ -n "$KO" ]; then cp "$KO" "$WORK_DIR/extras/"; echo "built: $KO"; fi
+          exit $RC
           
       - name: "📦 Collect modules, headers and config"
         if: ${{ !cancelled() }}
